@@ -1,0 +1,35 @@
+---
+- hosts: baseimage-vm
+  become: yes
+  tasks:
+    - name: install packages
+      yum:
+        name: selinux-policy-mls
+        state: latest
+    - name: Enable selinux
+      ansible.posix.selinux:
+        policy: targeted
+        state: permissive
+
+    - name: Add user1
+      ansible.builtin.user:
+        name: user1
+
+    - name: Add user2
+      ansible.builtin.user:
+        name: user2
+
+    - name: make selinux user
+      community.general.selogin:
+        login: ictsc
+        seuser: sysadm_u
+
+    - name: make selinux user
+      community.general.selogin:
+        login: user1
+        seuser: user_u
+
+    - name: make selinux user
+      community.general.selogin:
+        login: user2
+        seuser: user_u
