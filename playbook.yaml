@@ -2,13 +2,15 @@
 - hosts: baseimage-vm
   become: yes
   tasks:
+
     - name: install packages
       yum:
         name: selinux-policy-mls
         state: latest
+
     - name: Enable selinux
       ansible.posix.selinux:
-        policy: targeted
+        policy: mls
         state: permissive
 
     - name: Add user1
@@ -27,9 +29,11 @@
     - name: make selinux user
       community.general.selogin:
         login: user1
-        seuser: user_u
+        seuser: staff_u
+        selevel: s2:c100
 
     - name: make selinux user
       community.general.selogin:
         login: user2
-        seuser: user_u
+        seuser: staff_u
+        selevel: s1:c200
