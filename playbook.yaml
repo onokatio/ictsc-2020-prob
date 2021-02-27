@@ -5,15 +5,15 @@
     - user_password: "WelComeToICTSC2020"
   tasks:
 
-    - name: install packages
-      yum:
-        name: selinux-policy-mls
-        state: latest
-
     - name: Permissive selinux
       ansible.posix.selinux:
         policy: mls
         state: permissive
+
+    - name: install packages
+      yum:
+        name: selinux-policy-mls
+        state: latest
 
     - name: sshd password login
       lineinfile:
@@ -31,13 +31,32 @@
         name: employees
         state: present
 
-    - name: Add user1
+    - name: Add root
+      ansible.builtin.user:
+        name: root
+        password: "{{ user_password | password_hash('sha512') }}"
+
+    - name: Add user
+      ansible.builtin.user:
+        name: user
+        password: "{{ user_password | password_hash('sha512') }}"
+
+        #- name: Allow home directory context
+        #  community.general.sefcontext:
+        #      target: '/home(/.*)?'
+        #      setype: user_home_t
+        #      state: present
+
+    - name: relabel home directory
+      shell: restorecon -rv /home
+
+    - name: Add employee1
       ansible.builtin.user:
         name: employee1
         group: employees
         password: "{{ user_password | password_hash('sha512') }}"
 
-    - name: Add user2
+    - name: Add employee2
       ansible.builtin.user:
         name: employee2
         group: employees
@@ -46,26 +65,26 @@
     - name: make user member user top level clearance
       community.general.selogin:
         login: user
-        seuser: sysadm_u
+        seuser: staff_u
         selevel: s10:c100,c200
 
     - name: make ictsc member user top level clearance
       community.general.selogin:
         login: ictsc
-        seuser: sysadm_u
-        selevel: s10:c100
+        seuser: staff_u
+        selevel: s10:c100,c200
 
     - name: make selinux user
       community.general.selogin:
         login: employee1
         seuser: staff_u
-        selevel: s2:c100
+        selevel: s1:c100
 
     - name: make selinux user
       community.general.selogin:
         login: employee2
         seuser: staff_u
-        selevel: s1:c200
+        selevel: s2:c200
 
     - name: directory
       file:
@@ -102,3 +121,8 @@
         content: "This is a sample line."
         dest: /srv/department/B/file3.txt
         selevel: s1:c200
+
+    - name: Enforce selinux
+      ansible.posix.selinux:
+        state: enforcing
+        policy: mls
