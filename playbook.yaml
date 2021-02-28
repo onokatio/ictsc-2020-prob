@@ -1,19 +1,26 @@
----
 - hosts: baseimage-vm
   become: yes
   vars:
-    - user_password: "WelComeToICTSC2020"
+    - user_password: "ictsc2020"
   tasks:
 
-    - name: Permissive selinux
-      ansible.posix.selinux:
-        policy: mls
-        state: permissive
+#    - name: install packages
+#      yum:
+#        name: 
+#          - selinux-policy-mls
+#          #- policycoreutils-restorecond
+#          #- policycoreutils
+#        state: latest
+#
+#    - name: Permissive selinux
+#      ansible.posix.selinux:
+#        policy: targeted
+#        state: permissive
 
-    - name: install packages
-      yum:
-        name: selinux-policy-mls
-        state: latest
+#    - name: Permissive selinux with mls
+#      ansible.posix.selinux:
+#        policy: mls
+#        state: permissive
 
     - name: sshd password login
       lineinfile:
@@ -41,14 +48,36 @@
         name: user
         password: "{{ user_password | password_hash('sha512') }}"
 
-        #- name: Allow home directory context
-        #  community.general.sefcontext:
-        #      target: '/home(/.*)?'
-        #      setype: user_home_t
-        #      state: present
+#    - name: Allow home directory context
+#      community.general.sefcontext:
+#        target: '/home/ictsc(/.*)?'
+#        seuser: staff_u
+#        setype: user_home_t
+#        selevel: s0
+#        state: present
+#
+#    - name: Fix ld.so.cache
+#      community.general.sefcontext:
+#        target: '/etc/ld.so.cache'
+#        seuser: system_u
+#        setype: ld_so_cache_t
+#        selevel: s0
+#        state: present
 
-    - name: relabel home directory
-      shell: restorecon -rv /home
+      #- name: relabel root directory
+      #shell: restorecon -rv /
+
+#    - name: relabel root directory
+#      shell: chcon -u system_u -t ld_so_cache_t -l s0 /etc/ld.so.cache
+#
+#    - name: relabel etc directory
+#      shell: ldconfig
+#
+#    - name: relabel ictsc directory
+#      shell: chcon -u staff_u -t user_home_t -l s0 -R /home/ictsc
+#
+#    - name: relabel user directory
+#      shell: chcon -u staff_u -t user_home_t -l s0 -R /home/user
 
     - name: Add employee1
       ansible.builtin.user:
@@ -62,32 +91,32 @@
         group: employees
         password: "{{ user_password | password_hash('sha512') }}"
 
-    - name: Allow user_u to select s0-s15 c0.c1023 range
-      shell: semanage user -m -r s0-s15:c0.c1023 user_u
-
     - name: make user member user top level clearance
       community.general.selogin:
         login: user
         seuser: staff_u
-        selevel: s10:c100,c200
+        selevel: s0-s15:c100,c200
 
     - name: make ictsc member user top level clearance
       community.general.selogin:
         login: ictsc
         seuser: staff_u
-        selevel: s10:c100,c200
+        selevel: s0-s15:c100,c200
+
+    - name: Allow user_u to select s0-s10 c0.c1023 range
+      shell: semanage user -m -r s0-s15:c0.c1023 -L s0 user_u
 
     - name: make selinux user
       community.general.selogin:
         login: employee1
         seuser: user_u
-        selevel: s1:c100
+        selevel: s0-s1:c100
 
     - name: make selinux user
       community.general.selogin:
         login: employee2
         seuser: user_u
-        selevel: s2:c200
+        selevel: s0-s2:c200
 
     - name: directory
       file:
@@ -96,16 +125,19 @@
         owner: root
         group: root
         mode: "777"
+        selevel: s0
 
     - name: directory
       file:
         path: /srv/department/A
         state: directory
+        selevel: s0
 
     - name: directory
       file:
         path: /srv/department/B
         state: directory
+        selevel: s0
 
     - name: make file1
       copy:
@@ -125,7 +157,26 @@
         dest: /srv/department/B/file3.txt
         selevel: s1:c200
 
-    - name: Enforce selinux
-      ansible.posix.selinux:
-        state: enforcing
-        policy: mls
+#    - name: make autorelabel
+#      copy:
+#        content: " "
+#        dest: /.autorelabel
+
+    - name: make ssh pass
+      copy:
+        content: "ssh_pwauth = 1"
+        dest: /etc/cloud/cloud.cfg.d/99-ssh-pwauth.cfg
+
+    #- name: selinux enforcing after reboot
+    #  lineinfile:
+    #    path: /etc/selinux/config
+    #    regexp: "SELINUX="
+    #    line: "SELINUX=enforcing"
+
+    #- name: relabel root directory
+    #  shell: restorecon -rv /
+
+    #- name: Enforce selinux
+    #  ansible.posix.selinux:
+    #    state: enforcing
+    #    policy: mls
