@@ -176,7 +176,7 @@
     #- name: relabel root directory
     #  shell: restorecon -rv /
 
-    #- name: Enforce selinux
-    #  ansible.posix.selinux:
-    #    state: enforcing
-    #    policy: mls
+    - name: Enforce selinux
+      ansible.posix.selinux:
+        state: enforcing
+        policy: mls
