@@ -62,6 +62,9 @@
         group: employees
         password: "{{ user_password | password_hash('sha512') }}"
 
+    - name: Allow user_u to select s0-s15 c0.c1023 range
+      shell: semanage user -m -r s0-s15:c0.c1023 user_u
+
     - name: make user member user top level clearance
       community.general.selogin:
         login: user
@@ -77,13 +80,13 @@
     - name: make selinux user
       community.general.selogin:
         login: employee1
-        seuser: staff_u
+        seuser: user_u
         selevel: s1:c100
 
     - name: make selinux user
       community.general.selogin:
         login: employee2
-        seuser: staff_u
+        seuser: user_u
         selevel: s2:c200
 
     - name: directory
